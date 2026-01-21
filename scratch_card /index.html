@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Raspadinha</title>
+  <style>
+    /* Centraliza a raspadinha na tela do Canva */
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: transparent;
+    }
+    .scratch-wrap {
+      position: relative;
+      width: min(600px, 90vw); /* Ajustado para caber melhor em frames */
+      aspect-ratio: 4 / 3;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #ddd;
+      touch-action: none;
+    }
+    .scratch-wrap img,
+    .scratch-wrap canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="scratch-wrap" id="wrap">
+  <img src="imagem-baixo.png" alt="Revelado" />
+  <canvas id="scratch"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById('scratch');
+const wrap = document.getElementById('wrap');
+const ctx = canvas.getContext('2d');
+
+const coverImg = new Image();
+coverImg.src = "imagem-cima.png"; 
+coverImg.onload = () => resizeAndPaint();
+
+function resizeAndPaint(){
+  const dpr = window.devicePixelRatio || 1;
+  const rect = wrap.getBoundingClientRect();
+  canvas.width  = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  canvas.style.width  = rect.width + "px";
+  canvas.style.height = rect.height + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.drawImage(coverImg, 0, 0, rect.width, rect.height);
+}
+
+window.addEventListener('resize', resizeAndPaint);
+
+let scratching = false;
+const radius = 22;
+
+function getPos(e){
+  const rect = canvas.getBoundingClientRect();
+  const isTouch = e.touches && e.touches[0];
+  const x = (isTouch ? e.touches[0].clientX : e.clientX) - rect.left;
+  const y = (isTouch ? e.touches[0].clientY : e.clientY) - rect.top;
+  return {x, y};
+}
+
+function scratchAt(x, y){
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalCompositeOperation = "source-over";
+}
+
+wrap.addEventListener('pointerdown', (e) => {
+  scratching = true;
+  wrap.setPointerCapture(e.pointerId);
+  const {x,y} = getPos(e);
+  scratchAt(x,y);
+});
+
+wrap.addEventListener('pointermove', (e) => {
+  if(!scratching) return;
+  const {x,y} = getPos(e);
+  scratchAt(x,y);
+});
+
+wrap.addEventListener('pointerup', () => scratching = false);
+wrap.addEventListener('pointercancel', () => scratching = false);
+</script>
+</body>
+</html>
